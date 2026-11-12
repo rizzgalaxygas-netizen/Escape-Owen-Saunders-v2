@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Escape Owen Saunders</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #d4d4d4;
+            position: fixed;
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+        #game-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            touch-action: none;
+        }
+        #top-bar {
+            position: absolute;
+            top: 12px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-shadow: 0 2px 4px #000;
+            z-index: 5;
+        }
+        #objective-box {
+            background: rgba(10, 10, 12, 0.8);
+            border-left: 3px solid #8a1c1c;
+            padding: 8px 12px;
+            max-width: 280px;
+        }
+        #objective-title {
+            font-size: 10px;
+            color: #8a1c1c;
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        #objective-text {
+            font-size: 12px;
+            color: #e0e0e0;
+            line-height: 1.3;
+        }
+        #coin-display {
+            font-size: 12px;
+            color: #d4af37;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        #top-right-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .bar-container {
+            width: 140px;
+            height: 12px;
+            background: rgba(20, 20, 20, 0.85);
+            border: 1px solid #444;
+            position: relative;
+        }
+        #health-fill {
+            width: 100%;
+            height: 100%;
+            background: #9e1b1b;
+        }
+        #stamina-fill {
+            width: 100%;
+            height: 100%;
+            background: #b0b0b0;
+        }
+        .bar-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 9px;
+            line-height: 11px;
+            text-align: center;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px #000;
+        }
+        #pause-btn {
+            pointer-events: auto;
+            background: rgba(20, 20, 24, 0.85);
+            border: 1px solid #666;
+            color: #eee;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-top: 4px;
+            touch-action: manipulation;
+        }
+        /* Crosshair & Interaction */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.45);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        #interact-prompt {
+            position: absolute;
+            top: 56%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid #666;
+            padding: 8px 14px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            display: none;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 8;
+            touch-action: none;
+        }
+        #progress-container {
+            position: absolute;
+            top: 63%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 6px;
+            background: #111;
+            border: 1px solid #444;
+            display: none;
+            z-index: 8;
+        }
+        #progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #8a1c1c;
+        }
+        /* Hotbar & Inventory Trigger */
+        #hotbar-container {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            pointer-events: auto;
+            z-index: 12;
+            touch-action: none;
+        }
+        .hotbar-slot {
+            width: 44px;
+            height: 44px;
+            background: rgba(12, 12, 15, 0.82);
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            text-align: center;
+            color: #ccc;
+            padding: 2px;
+            position: relative;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .hotbar-slot.selected {
+            border: 2px solid #b82525;
+            background: rgba(40, 15, 15, 0.85);
+        }
+        .slot-num {
+            position: absolute;
+            top: 1px;
+            left: 3px;
+            font-size: 8px;
+            color: #777;
+        }
+        #inv-open-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(30, 30, 35, 0.9);
+            border: 1px solid #888;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        /* Multi-Touch Controls */
+        #joystick-zone {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            width: 115px;
+            height: 115px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: auto;
+            z-index: 6;
+            touch-action: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 44px;
+            height: 44px;
+            margin-top: -22px;
+            margin-left: -22px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        #look-zone {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 55%;
+            height: 100%;
+            pointer-events: auto;
+            z-index: 4;
+            touch-action: none;
+        }
+        #action-buttons {
+            position: absolute;
+            bottom: 70px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+            z-index: 10;
+            touch-action: none;
+        }
+        .touch-btn {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(15, 15, 18, 0.78);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ccc;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .touch-btn.active {
+            background: rgba(138, 28, 28, 0.65);
+            border-color: #d43f3f;
+            color: #fff;
+        }
+        .touch-btn.on-cooldown {
+            background: rgba(25, 25, 30, 0.9);
+            border-color: #555;
+            color: #ff6b6b;
+        }
+        #terror-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+        /* Modals */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 7, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            z-index: 100;
+            touch-action: manipulation;
+        }
+        .modal-box {
+            background: #0d0e11;
+            border: 1px solid #333;
+            width: 100%;
+            max-width: 680px;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            padding: 14px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .modal-title {
+            font-size: 15px;
+            color: #b82525;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        .close-btn {
+            background: #222;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        /* 20-Slot Inventory Grid + Drag & Drop Hotbar Target */
+        #inv-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+            touch-action: none;
+        }
+        .inv-slot {
+            height: 52px;
+            background: #141519;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            text-align: center;
+            padding: 3px;
+            cursor: grab;
+            position: relative;
+            touch-action: none;
+        }
+        .inv-slot.in-hotbar {
+            border-color: #7a6320;
+        }
+        .inv-slot.equipped-armor {
+            border-color: #2e8b57;
+            background: #102418;
+        }
+        .inv-slot.drag-over, .inv-hotbar-drop.drag-over {
+            border: 2px dashed #ffffff !important;
+            background: #262930 !important;
+        }
+        #inv-hotbar-bar {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #2a2a2a;
+            touch-action: none;
+        }
+        .inv-hotbar-drop {
+            height: 46px;
+            background: #191612;
+            border: 1px solid #7a6320;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            text-align: center;
+            padding: 2px;
+            color: #e6d298;
+            touch-action: none;
+        }
+        #drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            background: rgba(184, 37, 37, 0.9);
+            border: 1px solid #fff;
+            color: #fff;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 6px 10px;
+            transform: translate(-50%, -50%);
+            display: none;
+            white-space: nowrap;
+        }
+        #inv-details {
+            background: #111;
+            border: 1px solid #282828;
+            padding: 8px;
+            font-size: 11px;
+            min-height: 52px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .inv-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .action-small-btn {
+            background: #252529;
+            border: 1px solid #555;
+            color: #eee;
+            padding: 6px 10px;
+            font-size: 10px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        /* Shop Tabs */
+        .shop-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: #16171b;
+            border: 1px solid #333;
+            color: #aaa;
+            padding: 6px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .tab-btn.active {
+            background: #8a1c1c;
+            color: #fff;
+            border-color: #b82525;
+        }
+        #shop-list {
+            overflow-y: auto;
+            max-height: 52vh;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #131418;
+            border: 1px solid #2a2a2e;
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        .shop-item-info {
+            max-width: 72%;
+        }
+        .shop-item-name {
+            color: #e6e6e6;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .shop-item-desc {
+            color: #888;
+            font-size: 10px;
+        }
+        .buy-btn {
+            background: #1e241e;
+            border: 1px solid #4a7a4a;
+            color: #9ae69a;
+            padding: 6px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            min-width: 75px;
+            touch-action: manipulation;
+        }
+        .buy-btn:disabled {
+            background: #181818;
+            border-color: #333;
+            color: #555;
+        }
+        h1 {
+            font-size: 26px;
+            letter-spacing: 5px;
+            color: #b82525;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        p.briefing {
+            max-width: 520px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #999;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .primary-btn {
+            background: transparent;
+            border: 1px solid #b82525;
+            color: #e0e0e0;
+            padding: 12px 28px;
+            font-size: 13px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            margin: 5px;
+            touch-action: manipulation;
+        }
+        .primary-btn:active, .primary-btn:hover {
+            background: #b82525;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="game-canvas"></canvas>
+    <div id="terror-vignette"></div>
+    <div id="drag-ghost"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div id="top-bar">
+            <div id="objective-box">
+                <div id="objective-title">DIRECTIVE</div>
+                <div id="objective-text">Locate the Executive Keycard.</div>
+                <div id="coin-display">COINS: 0 | ARMOR: NONE</div>
+            </div>
+            <div id="top-right-controls">
+                <div class="status-row">
+                    <div class="bar-container">
+                        <div id="health-fill"></div>
+                        <div class="bar-text" id="health-text">HP: 100%</div>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <div class="bar-container">
+                        <div id="stamina-fill"></div>
+                        <div class="bar-text" id="stamina-text">STAM: 100%</div>
+                    </div>
+                </div>
+                <button id="pause-btn">PAUSE</button>
+            </div>
+        </div>
+
+        <div id="crosshair"></div>
+        <div id="interact-prompt">[HOLD TO INTERACT]</div>
+        <div id="progress-container"><div id="progress-fill"></div></div>
+
+        <div id="look-zone"></div>
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
+
+        <div id="action-buttons">
+            <div class="touch-btn" id="btn-use">USE / STUN</div>
+            <div class="touch-btn active" id="btn-light">LIGHT</div>
+            <div class="touch-btn" id="btn-sprint">SPRINT: OFF</div>
+        </div>
+
+        <!-- 6-Slot Hotbar + Inventory Button -->
+        <div id="hotbar-container">
+            <div class="hotbar-slot selected" data-slot="0"><span class="slot-num">1</span><span class="slot-name">EMPTY</span></div>
+            <div class="hotbar-slot" data-slot="1"><span class="slot-num">2</span><span class="slot-name">EMPTY</span></div>
+            <div class="hotbar-slot" data-slot="2"><span class="slot-num">3</span><span class="slot-name">EMPTY</span></div>
+            <div class="hotbar-slot" data-slot="3"><span class="slot-num">4</span><span class="slot-name">EMPTY</span></div>
+            <div class="hotbar-slot" data-slot="4"><span class="slot-num">5</span><span class="slot-name">EMPTY</span></div>
+            <div class="hotbar-slot" data-slot="5"><span class="slot-num">6</span><span class="slot-name">EMPTY</span></div>
+            <div id="inv-open-btn">INV<br>(20)</div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="modal-overlay" style="display: flex;">
+        <h1>Escape Owen Saunders</h1>
+        <p class="briefing">
+            Sub-Level 04 has been breached. Owen Saunders (3.50m tall, 2x human scale) stalks the open sectors. 
+            His strikes inflict 90 base damage. Health does not regenerate naturally.<br><br>
+            1. Recover the Executive Keycard.<br>
+            2. Restore the 3 Auxiliary Breakers.<br>
+            3. Override the Blast Door (+25 Coins per escape).
+        </p>
+        <div id="start-stats" style="font-size: 12px; color: #d4af37; margin-bottom: 14px;">SAVED COINS: 0 | ESCAPES: 0</div>
+        <div>
+            <button class="primary-btn" id="btn-start">ENTER FACILITY</button>
+            <button class="primary-btn" id="btn-open-shop-start">ARMORY & UPGRADES</button>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-screen" class="modal-overlay">
+        <div class="modal-box" style="max-width: 400px; text-align: center;">
+            <div class="modal-title" style="margin-bottom: 15px;">SYSTEM PAUSED</div>
+            <p style="font-size: 11px; color: #888; margin-bottom: 20px;">All progress, coins, gear, and current run state are saved automatically.</p>
+            <button class="primary-btn" id="btn-resume">RESUME</button>
+            <button class="primary-btn" id="btn-open-shop-pause">ARMORY & UPGRADES</button>
+            <button class="primary-btn" id="btn-restart-run">NEW RUN</button>
+        </div>
+    </div>
+
+    <!-- 20-Slot Inventory Modal with Drag & Drop -->
+    <div id="inv-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">INVENTORY (DRAG TO SLOT OR HOTBAR)</div>
+                <button class="close-btn" id="btn-close-inv">CLOSE</button>
+            </div>
+            <div id="inv-grid"></div>
+            <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HOTBAR SLOTS (DROP HERE TO ASSIGN):</div>
+            <div id="inv-hotbar-bar"></div>
+            <div id="inv-details">
+                <div id="inv-item-info">Tap or drag an item to move between slots or assign to hotbar (1-6).</div>
+                <div class="inv-actions" id="inv-action-btns"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Armory / Upgrades / Shop Modal -->
+    <div id="shop-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">QUARTERMASTER (<span id="shop-coins">0</span> COINS)</div>
+                <button class="close-btn" id="btn-close-shop">CLOSE</button>
+            </div>
+            <div class="shop-tabs">
+                <button class="tab-btn active" data-tab="weapons">STUN GEAR (20)</button>
+                <button class="tab-btn" data-tab="armor">ARMOR (16)</button>
+                <button class="tab-btn" data-tab="consumables">CONSUMABLES (14)</button>
+                <button class="tab-btn" data-tab="upgrades">UPGRADES (18)</button>
+            </div>
+            <div id="shop-list"></div>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="modal-overlay">
+        <h1 id="end-title">TERMINATED</h1>
+        <p class="briefing" id="end-desc">Subject Owen Saunders has eliminated the witness.</p>
+        <div>
+            <button class="primary-btn" id="btn-end-restart">PLAY AGAIN</button>
+            <button class="primary-btn" id="btn-open-shop-end">ARMORY & UPGRADES</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- PREVENT SAFARI DOUBLE-TAP & PINCH ZOOM GLOBALLY ---
+        let lastTouchEndTime = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEndTime <= 320) {
+                e.preventDefault();
+            }
+            lastTouchEndTime = now;
+        }, { passive: false });
+
+        document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+        document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+
+        // --- CATALOGS ---
+        const CATALOG = {
+            weapons: [
+                { id: 'w1', name: 'Static Prod', cost: 15, stun: 2.0, cd: 40, range: 2.8, desc: '0 Dmg | Stuns Owen 2.0s | Hit CD: 40s | Miss CD: 1s' },
+                { id: 'w2', name: 'Flash-Baton', cost: 20, stun: 2.4, cd: 42, range: 2.9, desc: '0 Dmg | Stuns Owen 2.4s | Hit CD: 42s | Miss CD: 1s' },
+                { id: 'w3', name: 'Rubber Baton', cost: 25, stun: 2.7, cd: 44, range: 3.0, desc: '0 Dmg | Stuns Owen 2.7s | Hit CD: 44s | Miss CD: 1s' },
+                { id: 'w4', name: 'Pepper Projector', cost: 30, stun: 3.0, cd: 46, range: 4.5, desc: '0 Dmg | Stuns Owen 3.0s | Hit CD: 46s | Miss CD: 1s' },
+                { id: 'w5', name: 'Acoustic Horn', cost: 35, stun: 3.3, cd: 48, range: 6.0, desc: '0 Dmg | Stuns Owen 3.3s | Hit CD: 48s | Miss CD: 1s' },
+                { id: 'w6', name: 'Concussion Flashlight', cost: 45, stun: 3.6, cd: 50, range: 7.5, desc: '0 Dmg | Stuns Owen 3.6s | Hit CD: 50s | Miss CD: 1s' },
+                { id: 'w7', name: 'Tethered Taser', cost: 55, stun: 4.0, cd: 53, range: 9.0, desc: '0 Dmg | Stuns Owen 4.0s | Hit CD: 53s | Miss CD: 1s' },
+                { id: 'w8', name: 'Beanbag Launcher', cost: 65, stun: 4.3, cd: 55, range: 11.0, desc: '0 Dmg | Stuns Owen 4.3s | Hit CD: 55s | Miss CD: 1s' },
+                { id: 'w9', name: 'Net Caster', cost: 75, stun: 4.6, cd: 58, range: 10.0, desc: '0 Dmg | Stuns Owen 4.6s | Hit CD: 58s | Miss CD: 1s' },
+                { id: 'w10', name: 'Flashbang Dispenser', cost: 85, stun: 5.0, cd: 60, range: 12.0, desc: '0 Dmg | Stuns Owen 5.0s | Hit CD: 60s | Miss CD: 1s' },
+                { id: 'w11', name: 'Sonic Pulse Pistol', cost: 100, stun: 5.4, cd: 63, range: 14.0, desc: '0 Dmg | Stuns Owen 5.4s | Hit CD: 63s | Miss CD: 1s' },
+                { id: 'w12', name: 'Arc Taser Carbine', cost: 115, stun: 5.8, cd: 66, range: 15.0, desc: '0 Dmg | Stuns Owen 5.8s | Hit CD: 66s | Miss CD: 1s' },
+                { id: 'w13', name: 'Cryo-Foam Sprayer', cost: 130, stun: 6.2, cd: 69, range: 10.0, desc: '0 Dmg | Stuns Owen 6.2s | Hit CD: 69s | Miss CD: 1s' },
+                { id: 'w14', name: 'Magnetic Bola Gun', cost: 145, stun: 6.6, cd: 72, range: 16.0, desc: '0 Dmg | Stuns Owen 6.6s | Hit CD: 72s | Miss CD: 1s' },
+                { id: 'w15', name: 'LRAD Sonic Rifle', cost: 160, stun: 7.0, cd: 75, range: 18.0, desc: '0 Dmg | Stuns Owen 7.0s | Hit CD: 75s | Miss CD: 1s' },
+                { id: 'w16', name: 'EMP Shockwave Emitter', cost: 180, stun: 7.5, cd: 78, range: 14.0, desc: '0 Dmg | Stuns Owen 7.5s | Hit CD: 78s | Miss CD: 1s' },
+                { id: 'w17', name: 'Stasis Snare Projector', cost: 200, stun: 8.0, cd: 81, range: 20.0, desc: '0 Dmg | Stuns Owen 8.0s | Hit CD: 81s | Miss CD: 1s' },
+                { id: 'w18', name: 'Neural Disruptor', cost: 225, stun: 8.5, cd: 84, range: 22.0, desc: '0 Dmg | Stuns Owen 8.5s | Hit CD: 84s | Miss CD: 1s' },
+                { id: 'w19', name: 'Tesla Paralysis Coil', cost: 250, stun: 9.2, cd: 87, range: 24.0, desc: '0 Dmg | Stuns Owen 9.2s | Hit CD: 87s | Miss CD: 1s' },
+                { id: 'w20', name: 'Chrono-Lock Cannon', cost: 290, stun: 10.0, cd: 90, range: 28.0, desc: '0 Dmg | Stuns Owen 10.0s | Hit CD: 90s | Miss CD: 1s' }
+            ],
+            armor: [
+                { id: 'a1', name: 'Padded Jacket', cost: 10, res: 0.08, spd: 0.02, desc: '8% Damage Resistance | +2% Speed' },
+                { id: 'a2', name: 'Runner Vest', cost: 15, res: 0.05, spd: 0.12, desc: '5% Damage Resistance | +12% Speed' },
+                { id: 'a3', name: 'Leather Trench', cost: 20, res: 0.12, spd: 0.00, desc: '12% Damage Resistance | 0% Speed Mod' },
+                { id: 'a4', name: 'Security Kevlar', cost: 25, res: 0.18, spd: -0.02, desc: '18% Damage Resistance | -2% Speed' },
+                { id: 'a5', name: 'Scout Rig', cost: 35, res: 0.14, spd: 0.15, desc: '14% Damage Resistance | +15% Speed' },
+                { id: 'a6', name: 'Hazard Suit', cost: 40, res: 0.22, spd: -0.04, desc: '22% Damage Resistance | -4% Speed' },
+                { id: 'a7', name: 'Tactical Plate Carrier', cost: 50, res: 0.28, spd: -0.05, desc: '28% Damage Resistance | -5% Speed' },
+                { id: 'a8', name: 'Recon Stealth Suit', cost: 65, res: 0.20, spd: 0.20, desc: '20% Damage Resistance | +20% Speed' },
+                { id: 'a9', name: 'Riot Gear', cost: 75, res: 0.35, spd: -0.08, desc: '35% Damage Resistance | -8% Speed' },
+                { id: 'a10', name: 'Carbon Weave Armor', cost: 90, res: 0.32, spd: 0.08, desc: '32% Damage Resistance | +8% Speed' },
+                { id: 'a11', name: 'Heavy Breach Suit', cost: 105, res: 0.45, spd: -0.12, desc: '45% Damage Resistance | -12% Speed' },
+                { id: 'a12', name: 'Kinetic Exosuit', cost: 125, res: 0.38, spd: 0.18, desc: '38% Damage Resistance | +18% Speed' },
+                { id: 'a13', name: 'Ballistic Juggernaut', cost: 145, res: 0.55, spd: -0.16, desc: '55% Damage Resistance | -16% Speed' },
+                { id: 'a14', name: 'Vanguard Nano-Mesh', cost: 170, res: 0.48, spd: 0.14, desc: '48% Damage Resistance | +14% Speed' },
+                { id: 'a15', name: 'Titanium Dreadnought', cost: 200, res: 0.65, spd: -0.20, desc: '65% Damage Resistance | -20% Speed' },
+                { id: 'a16', name: 'Aegis Mk-IV Power Armor', cost: 250, res: 0.70, spd: 0.10, desc: '70% Damage Resistance | +10% Speed' }
+            ],
+            consumables: [
+                { id: 'c1', name: 'Bandage Roll', cost: 5, heal: 20, stam: 0, speedBoost: 0, desc: 'Restores +20% Health.' },
+                { id: 'c2', name: 'Energy Drink', cost: 5, heal: 0, stam: 50, speedBoost: 0, desc: 'Restores +50% Stamina immediately.' },
+                { id: 'c3', name: 'Antiseptic Spray', cost: 10, heal: 35, stam: 0, speedBoost: 0, desc: 'Restores +35% Health.' },
+                { id: 'c4', name: 'Adrenaline Shot', cost: 12, heal: 10, stam: 100, speedBoost: 5, desc: '+10% HP, Full Stamina & 5s Speed Burst.' },
+                { id: 'c5', name: 'First Aid Kit', cost: 15, heal: 50, stam: 0, speedBoost: 0, desc: 'Restores +50% Health.' },
+                { id: 'c6', name: 'Electrolyte Gel', cost: 15, heal: 15, stam: 80, speedBoost: 3, desc: '+15% HP, +80% Stamina & 3s Speed.' },
+                { id: 'c7', name: 'Trauma Pack', cost: 22, heal: 75, stam: 0, speedBoost: 0, desc: 'Restores +75% Health.' },
+                { id: 'c8', name: 'Combat Stimulant', cost: 25, heal: 25, stam: 100, speedBoost: 8, desc: '+25% HP, Full Stamina & 8s Speed Burst.' },
+                { id: 'c9', name: 'Military Medkit', cost: 30, heal: 100, stam: 25, speedBoost: 0, desc: 'Restores 100% Health & +25% Stamina.' },
+                { id: 'c10', name: 'Neuro-Booster', cost: 32, heal: 0, stam: 100, speedBoost: 12, desc: 'Full Stamina & 12s Sprint Surge.' },
+                { id: 'c11', name: 'Nano-Syringe', cost: 40, heal: 100, stam: 100, speedBoost: 0, desc: 'Fully restores Health and Stamina.' },
+                { id: 'c12', name: 'Hyper-Adrenaline', cost: 45, heal: 40, stam: 100, speedBoost: 15, desc: '+40% HP, Full Stamina & 15s Speed.' },
+                { id: 'c13', name: 'Cryo-Stasis Vial', cost: 50, heal: 80, stam: 50, speedBoost: 6, desc: '+80% HP, +50% Stamina & 6s Speed.' },
+                { id: 'c14', name: 'Phoenix Injector', cost: 65, heal: 100, stam: 100, speedBoost: 15, desc: '100% HP, 100% Stamina & 15s Speed.' }
+            ],
+            upgrades: [
+                { id: 'u1', name: 'Cardio Conditioning I', cost: 15, stat: 'speed', val: 0.06, desc: 'Permanent +6% base movement speed.' },
+                { id: 'u2', name: 'Cardio Conditioning II', cost: 30, stat: 'speed', val: 0.08, desc: 'Permanent +8% base movement speed.' },
+                { id: 'u3', name: 'Cardio Conditioning III', cost: 50, stat: 'speed', val: 0.10, desc: 'Permanent +10% base movement speed.' },
+                { id: 'u4', name: 'Lung Capacity I', cost: 15, stat: 'maxStam', val: 20, desc: 'Increases Max Stamina capacity by +20.' },
+                { id: 'u5', name: 'Lung Capacity II', cost: 30, stat: 'maxStam', val: 30, desc: 'Increases Max Stamina capacity by +30.' },
+                { id: 'u6', name: 'Lung Capacity III', cost: 50, stat: 'maxStam', val: 50, desc: 'Increases Max Stamina capacity by +50.' },
+                { id: 'u7', name: 'Metabolic Recovery I', cost: 20, stat: 'stamRegen', val: 4, desc: 'Increases Stamina regen by +4/sec.' },
+                { id: 'u8', name: 'Metabolic Recovery II', cost: 40, stat: 'stamRegen', val: 6, desc: 'Increases Stamina regen by +6/sec.' },
+                { id: 'u9', name: 'Toughness Training I', cost: 20, stat: 'maxHp', val: 15, desc: 'Increases Max Health by +15.' },
+                { id: 'u10', name: 'Toughness Training II', cost: 40, stat: 'maxHp', val: 25, desc: 'Increases Max Health by +25.' },
+                { id: 'u11', name: 'Toughness Training III', cost: 65, stat: 'maxHp', val: 35, desc: 'Increases Max Health by +35.' },
+                { id: 'u12', name: 'Technician Hands I', cost: 20, stat: 'interact', val: 0.15, desc: '15% faster breaker & door overrides.' },
+                { id: 'u13', name: 'Technician Hands II', cost: 45, stat: 'interact', val: 0.25, desc: '25% faster breaker & door overrides.' },
+                { id: 'u14', name: 'Soft-Sole Boots I', cost: 20, stat: 'stealth', val: 0.20, desc: 'Reduces Owen acoustic detection range by 20%.' },
+                { id: 'u15', name: 'Soft-Sole Boots II', cost: 45, stat: 'stealth', val: 0.25, desc: 'Reduces Owen acoustic detection range by 25%.' },
+                { id: 'u16', name: 'Wide-Beam Lens', cost: 25, stat: 'light', val: 0.25, desc: '+25% Flashlight brightness and range.' },
+                { id: 'u17', name: 'Capacitor Overclock', cost: 35, stat: 'stunMult', val: 0.20, desc: '+20% Stun duration on all stun weapons.' },
+                { id: 'u18', name: 'Bounty Hunter', cost: 55, stat: 'coinBonus', val: 10, desc: '+10 bonus Coins per successful escape.' }
+            ]
+        };
+
+        // --- PERSISTENT SAVE DATA ---
+        const SAVE_KEY = 'eos_persistent_save_v2';
+        const DEFAULT_SAVE = {
+            coins: 0,
+            escapes: 0,
+            inventory: new Array(20).fill(null),
+            hotbar: [0, 1, 2, 3, 4, 5],
+            equippedArmorId: null,
+            ownedUpgrades: [],
+            pausedRun: null
+        };
+
+        function loadSaveData() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SAVE));
+                const parsed = JSON.parse(raw);
+                return Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), parsed);
+            } catch (e) {
+                return JSON.parse(JSON.stringify(DEFAULT_SAVE));
+            }
+        }
+
+        let saveData = loadSaveData();
+
+        function persistSave() {
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+            } catch (e) {}
+        }
+
+        function getUpgradeTotals() {
+            const totals = { speed: 0, maxStam: 0, stamRegen: 0, maxHp: 0, interact: 0, stealth: 0, light: 0, stunMult: 0, coinBonus: 0 };
+            for (const uid of saveData.ownedUpgrades) {
+                const u = CATALOG.upgrades.find(x => x.id === uid);
+                if (u) totals[u.stat] += u.val;
+            }
+            return totals;
+        }
+
+        function getEquippedArmor() {
+            if (!saveData.equippedArmorId) return null;
+            return CATALOG.armor.find(a => a.id === saveData.equippedArmorId) || null;
+        }
+
+        // --- SOUND ENGINE ---
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.heartbeatTimer = 0;
+            }
+            init() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.value = 40;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 85;
+                gain.gain.value = 0.06;
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+            }
+            playTone(freq, type, dur, vol = 0.15) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(25, this.ctx.currentTime + dur);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + dur + 0.02);
+            }
+            playFootstep(isHeavy = false, distance = 0) {
+                if (!this.ctx) return;
+                const vol = isHeavy ? Math.max(0, 1 - (distance / 42)) * 0.55 : 0.05;
+                if (vol <= 0.005) return;
+                this.playTone(isHeavy ? 52 : 115, isHeavy ? 'triangle' : 'sine', isHeavy ? 0.24 : 0.07, vol);
+            }
+            playHeartbeat(intensity) {
+                if (!this.ctx || intensity <= 0.1) return;
+                this.playTone(62, 'sine', 0.12, intensity * 0.35);
+                setTimeout(() => this.playTone(48, 'sine', 0.12, intensity * 0.3), 150);
+            }
+        }
+        const sound = new SoundEngine();
+
+        // --- PROCEDURAL TEXTURES (OPTIMIZED RESOLUTION FOR ZERO LAG) ---
+        function createConcreteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#26282c';
+            ctx.fillRect(0, 0, 128, 128);
+            for (let i = 0; i < 800; i++) {
+                const v = 28 + Math.random() * 24;
+                ctx.fillStyle = `rgb(${v},${v},${v+3})`;
+                ctx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function createFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#191a1d';
+            ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = '#0f1012';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, 64, 64);
+            ctx.strokeRect(64, 64, 64, 64);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(34, 34);
+            return tex;
+        }
+
+        // --- OPEN-CONCEPT FACILITY MAP ---
+        const CELL_SIZE = 5.2;
+        const WALL_HEIGHT = 4.8;
+        const MAP_GRID = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,5,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,3,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,1,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,1,1,0,0,0,0,0,2,0,0,0,0,0,1,1,0,0,0,0,0,1],
+            [1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,1,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,6,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,1,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1],
+            [1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+            [1,0,0,0,0,1,1,0,0,0,0,0,3,0,0,0,0,0,1,1,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,1,0,0,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,4,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        // --- GAME STATE ---
+        const state = {
+            running: false,
+            paused: false,
+            hasKeycard: false,
+            breakersFixed: 0,
+            totalBreakers: 3,
+            health: 100,
+            maxHealth: 100,
+            stamina: 100,
+            maxStamina: 100,
+            flashlightOn: true,
+            sprintToggled: false,
+            interacting: false,
+            interactProgress: 0,
+            selectedHotbarSlot: 0,
+            speedBoostTimer: 0,
+            weaponCooldowns: {},
+            hitCooldown: 0,
+            playerPos: new THREE.Vector3(),
+            playerYaw: 0,
+            playerPitch: 0,
+            playerHeight: 1.75,
+            walkBobTimer: 0,
+            lastStepTime: 0
+        };
+
+        // --- THREE.JS SCENE SETUP (PERFORMANCE OPTIMIZED: INSTANCED WALLS & CAPPED PIXEL RATIO) ---
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: false,
+            powerPreference: 'high-performance',
+            stencil: false,
+            depth: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // Cap pixelRatio at 1.25 to eliminate mobile Retina/OLED GPU fill-rate lag
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+        renderer.shadowMap.enabled = false;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050508, 0.042);
+
+        const camera = new THREE.PerspectiveCamera(74, window.innerWidth / window.innerHeight, 0.1, 60);
+        scene.add(camera);
+
+        const ambientLight = new THREE.AmbientLight(0x1a1e28, 0.65);
+        scene.add(ambientLight);
+
+        const flashlight = new THREE.SpotLight(0xfff6e5, 2.5, 34, Math.PI / 4.8, 0.4, 1.0);
+        flashlight.position.set(0.2, -0.15, 0);
+        flashlight.target.position.set(0, -0.15, -5);
+        camera.add(flashlight);
+        camera.add(flashlight.target);
+
+        // --- BUILD OPEN MAP USING INSTANCEDMESH (1 DRAW CALL FOR ALL WALLS) ---
+        const interactables = [];
+        const patrolNodes = [];
+        const wallMat = new THREE.MeshLambertMaterial({ map: createConcreteTexture() });
+        const floorMat = new THREE.MeshLambertMaterial({ map: createFloorTexture() });
+        const ceilingMat = new THREE.MeshBasicMaterial({ color: 0x0b0c0e });
+
+        const mapWidth = MAP_GRID[0].length * CELL_SIZE;
+        const mapDepth = MAP_GRID.length * CELL_SIZE;
+
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapDepth), floorMat);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.position.set(mapWidth / 2 - CELL_SIZE / 2, 0, mapDepth / 2 - CELL_SIZE / 2);
+        floorMesh.matrixAutoUpdate = false;
+        floorMesh.updateMatrix();
+        scene.add(floorMesh);
+
+        const ceilMesh = new THREE.Mesh(new THREE.PlaneGeometry(mapWidth, mapDepth), ceilingMat);
+        ceilMesh.rotation.x = Math.PI / 2;
+        ceilMesh.position.set(mapWidth / 2 - CELL_SIZE / 2, WALL_HEIGHT, mapDepth / 2 - CELL_SIZE / 2);
+        ceilMesh.matrixAutoUpdate = false;
+        ceilMesh.updateMatrix();
+        scene.add(ceilMesh);
+
+        // Count walls first for InstancedMesh
+        let wallCount = 0;
+        for (let r = 0; r < MAP_GRID.length; r++) {
+            for (let c = 0; c < MAP_GRID[r].length; c++) {
+                if (MAP_GRID[r][c] === 1) wallCount++;
+            }
+        }
+
+        const wallGeo = new THREE.BoxGeometry(CELL_SIZE, WALL_HEIGHT, CELL_SIZE);
+        const instancedWalls = new THREE.InstancedMesh(wallGeo, wallMat, wallCount);
+        const dummy = new THREE.Object3D();
+        let wallIdx = 0;
+
+        let owenSpawnPos = new THREE.Vector3();
+        let playerDefaultSpawn = new THREE.Vector3();
+
+        for (let r = 0; r < MAP_GRID.length; r++) {
+            for (let c = 0; c < MAP_GRID[r].length; c++) {
+                const cell = MAP_GRID[r][c];
+                const wx = c * CELL_SIZE;
+                const wz = r * CELL_SIZE;
+
+                if (cell === 1) {
+                    dummy.position.set(wx, WALL_HEIGHT / 2, wz);
+                    dummy.updateMatrix();
+                    instancedWalls.setMatrixAt(wallIdx++, dummy.matrix);
+                } else {
+                    if ((r + c) % 4 === 0) patrolNodes.push(new THREE.Vector3(wx, 0, wz));
+                    // Fewer dynamic PointLights for mobile shader speed
+                    if ((r === 8 && c === 8) || (r === 8 && c === 17) || (r === 16 && c === 8) || (r === 16 && c === 17)) {
+                        const bulb = new THREE.PointLight(0x8a1414, 1.1, 18);
+                        bulb.position.set(wx, WALL_HEIGHT - 0.3, wz);
+                        scene.add(bulb);
+                    }
+                }
+
+                if (cell === 5) {
+                    playerDefaultSpawn.set(wx, state.playerHeight, wz);
+                    state.playerPos.copy(playerDefaultSpawn);
+                } else if (cell === 6) {
+                    owenSpawnPos.set(wx, 0, wz);
+                } else if (cell === 2) {
+                    const ped = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.0, 0.9), new THREE.MeshLambertMaterial({ color: 0x252528 }));
+                    ped.position.set(wx, 0.5, wz);
+                    scene.add(ped);
+
+                    const card = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.04, 0.24), new THREE.MeshBasicMaterial({ color: 0x22aaff }));
+                    card.position.set(wx, 1.04, wz);
+                    scene.add(card);
+
+                    const light = new THREE.PointLight(0x22aaff, 0.9, 6);
+                    light.position.set(wx, 1.4, wz);
+                    scene.add(light);
+
+                    interactables.push({
+                        id: `key_${r}_${c}`,
+                        type: 'keycard',
+                        mesh: card,
+                        light: light,
+                        pos: new THREE.Vector3(wx, 1.0, wz),
+                        duration: 1.0,
+                        completed: false,
+                        label: 'RECOVER EXECUTIVE KEYCARD'
+                    });
+                } else if (cell === 3) {
+                    const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.5, 0.6), new THREE.MeshLambertMaterial({ color: 0x2c302e }));
+                    boxMesh.position.set(wx, 1.3, wz);
+                    scene.add(boxMesh);
+
+                    const indicator = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
+                    indicator.position.set(wx, 1.9, wz + 0.32);
+                    scene.add(indicator);
+
+                    interactables.push({
+                        id: `brk_${r}_${c}`,
+                        type: 'breaker',
+                        mesh: boxMesh,
+                        indicator: indicator,
+                        pos: new THREE.Vector3(wx, 1.3, wz),
+                        duration: 2.6,
+                        completed: false,
+                        label: 'ENGAGE AUXILIARY BREAKER'
+                    });
+                } else if (cell === 4) {
+                    const gateMesh = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE * 0.9, WALL_HEIGHT * 0.9, 0.7), new THREE.MeshLambertMaterial({ color: 0x1a1c1e }));
+                    gateMesh.position.set(wx, WALL_HEIGHT * 0.45, wz);
+                    scene.add(gateMesh);
+
+                    const gateLight = new THREE.PointLight(0xff3300, 1.4, 9);
+                    gateLight.position.set(wx, 2.5, wz - 0.9);
+                    scene.add(gateLight);
+
+                    interactables.push({
+                        id: `exit_${r}_${c}`,
+                        type: 'exit',
+                        mesh: gateMesh,
+                        light: gateLight,
+                        pos: new THREE.Vector3(wx, 1.5, wz),
+                        duration: 3.0,
+                        completed: false,
+                        label: 'OVERRIDE BLAST DOOR'
+                    });
+                }
+            }
+        }
+        instancedWalls.instanceMatrix.needsUpdate = true;
+        scene.add(instancedWalls);
+
+        // --- OWEN SAUNDERS (3.50M TALL - 2X PLAYER HEIGHT) ---
+        class OwenSaunders {
+            constructor(spawnPos) {
+                this.group = new THREE.Group();
+                this.group.position.copy(spawnPos);
+                
+                const suitMat = new THREE.MeshLambertMaterial({ color: 0x0a0a0c });
+                const skinMat = new THREE.MeshLambertMaterial({ color: 0x8f8a84 });
+                const eyeMat = new THREE.MeshBasicMaterial({ color: 0xe6e6e6 });
+
+                const legGeo = new THREE.CylinderGeometry(0.15, 0.11, 1.75, 6);
+                this.leftLeg = new THREE.Mesh(legGeo, suitMat);
+                this.leftLeg.position.set(-0.23, 0.875, 0);
+                this.rightLeg = new THREE.Mesh(legGeo, suitMat);
+                this.rightLeg.position.set(0.23, 0.875, 0);
+                this.group.add(this.leftLeg, this.rightLeg);
+
+                const torso = new THREE.Mesh(new THREE.BoxGeometry(0.72, 1.25, 0.36), suitMat);
+                torso.position.set(0, 2.35, 0);
+                this.group.add(torso);
+
+                const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.24, 0.40), suitMat);
+                shoulders.position.set(0, 2.92, 0.04);
+                this.group.add(shoulders);
+
+                const armGeo = new THREE.CylinderGeometry(0.095, 0.065, 1.55, 6);
+                this.leftArm = new THREE.Mesh(armGeo, suitMat);
+                this.leftArm.position.set(-0.50, 2.2, 0.05);
+                this.rightArm = new THREE.Mesh(armGeo, suitMat);
+                this.rightArm.position.set(0.50, 2.2, 0.05);
+                this.group.add(this.leftArm, this.rightArm);
+
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.22, 6), skinMat);
+                neck.position.set(0, 3.05, 0.06);
+                this.group.add(neck);
+
+                this.head = new THREE.Group();
+                this.head.position.set(0, 3.30, 0.08);
+                const skull = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.38, 0.31), skinMat);
+                this.head.add(skull);
+
+                const socketMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+                const leftSocket = new THREE.Mesh(new THREE.SphereGeometry(0.048, 5, 5), socketMat);
+                leftSocket.position.set(-0.068, 0.03, 0.135);
+                const rightSocket = new THREE.Mesh(new THREE.SphereGeometry(0.048, 5, 5), socketMat);
+                rightSocket.position.set(0.068, 0.03, 0.135);
+
+                const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 5, 5), eyeMat);
+                leftEye.position.set(-0.068, 0.03, 0.15);
+                const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 5, 5), eyeMat);
+                rightEye.position.set(0.068, 0.03, 0.15);
+
+                this.head.add(leftSocket, rightSocket, leftEye, rightEye);
+                this.group.add(this.head);
+
+                scene.add(this.group);
+
+                this.state = 'PATROL';
+                this.targetPos = patrolNodes[Math.floor(Math.random() * patrolNodes.length)].clone();
+                this.walkCycle = 0;
+                this.stepCooldown = 0;
+                this.chaseTimer = 0;
+                this.stunTimer = 0;
+                this._tmpStart = new THREE.Vector3();
+                this._tmpEnd = new THREE.Vector3();
+                this._tmpDir = new THREE.Vector3();
+                this._tmpCheck = new THREE.Vector3();
+                this._tmpTarget = new THREE.Vector3();
+            }
+
+            hasLineOfSight(playerPos) {
+                this._tmpStart.set(this.group.position.x, 2.5, this.group.position.z);
+                this._tmpEnd.set(playerPos.x, 1.5, playerPos.z);
+                this._tmpDir.subVectors(this._tmpEnd, this._tmpStart);
+                const dist = this._tmpDir.length();
+                if (dist > 34) return false;
+
+                this._tmpDir.divideScalar(dist);
+                const steps = Math.floor(dist / 0.9);
+                for (let i = 1; i < steps; i++) {
+                    this._tmpCheck.copy(this._tmpStart).addScaledVector(this._tmpDir, i * 0.9);
+                    const c = Math.round(this._tmpCheck.x / CELL_SIZE);
+                    const r = Math.round(this._tmpCheck.z / CELL_SIZE);
+                    if (MAP_GRID[r] && MAP_GRID[r][c] === 1) return false;
+                }
+                return true;
+            }
+
+            applyStun(stunDur) {
+                this.stunTimer = Math.max(this.stunTimer, stunDur);
+                sound.playTone(130, 'sawtooth', 0.35, 0.35);
+            }
+
+            update(dt, playerPos, playerMakingNoise) {
+                if (this.stunTimer > 0) {
+                    this.stunTimer -= dt;
+                    this.head.rotation.z = Math.sin(performance.now() * 0.03) * 0.38;
+                    return;
+                }
+
+                const dxP = playerPos.x - this.group.position.x;
+                const dzP = playerPos.z - this.group.position.z;
+                const distToPlayer = Math.hypot(dxP, dzP);
+                const upg = getUpgradeTotals();
+                const acousticRange = 24 * Math.max(0.3, 1 - upg.stealth);
+
+                if (distToPlayer < 1.5 && state.hitCooldown <= 0) {
+                    state.hitCooldown = 1.6;
+                    const armor = getEquippedArmor();
+                    const resistance = armor ? armor.res : 0;
+                    const finalDamage = Math.round(90 * (1 - resistance));
+                    
+                    state.health = Math.max(0, state.health - finalDamage);
+                    sound.playTone(55, 'sawtooth', 0.45, 0.5);
+                    updateStatusBars();
+
+                    const invD = distToPlayer > 0.001 ? 1 / distToPlayer : 1;
+                    const pushX = state.playerPos.x + dxP * invD * 2.2;
+                    const pushZ = state.playerPos.z + dzP * invD * 2.2;
+                    if (!checkWallCollision(pushX, state.playerPos.z, 0.45)) state.playerPos.x = pushX;
+                    if (!checkWallCollision(state.playerPos.x, pushZ, 0.45)) state.playerPos.z = pushZ;
+
+                    if (state.health <= 0) {
+                        endGame(false);
+                        return;
+                    }
+                }
+
+                const canSee = this.hasLineOfSight(playerPos);
+                if (canSee && (distToPlayer < 22 || state.flashlightOn)) {
+                    this.state = 'CHASE';
+                    this.targetPos.set(playerPos.x, 0, playerPos.z);
+                    this.chaseTimer = 5.0;
+                } else if (playerMakingNoise && distToPlayer < acousticRange) {
+                    if (this.state !== 'CHASE') this.state = 'INVESTIGATE';
+                    this.targetPos.set(playerPos.x, 0, playerPos.z);
+                }
+
+                if (this.state === 'CHASE') {
+                    this.chaseTimer -= dt;
+                    if (canSee) {
+                        this.targetPos.set(playerPos.x, 0, playerPos.z);
+                        this.chaseTimer = 4.5;
+                    } else if (this.chaseTimer <= 0) {
+                        this.state = 'PATROL';
+                    }
+                }
+
+                this._tmpTarget.subVectors(this.targetPos, this.group.position);
+                this._tmpTarget.y = 0;
+                const distToTarget = this._tmpTarget.length();
+
+                if (distToTarget < 1.3) {
+                    if (this.state === 'PATROL' || this.state === 'INVESTIGATE') {
+                        this.state = 'PATROL';
+                        this.targetPos.copy(patrolNodes[Math.floor(Math.random() * patrolNodes.length)]);
+                    }
+                } else {
+                    this._tmpTarget.divideScalar(distToTarget);
+                    const speed = this.state === 'CHASE' ? 5.1 : 2.5;
+                    const nextX = this.group.position.x + this._tmpTarget.x * speed * dt;
+                    const nextZ = this.group.position.z + this._tmpTarget.z * speed * dt;
+                    
+                    if (!checkWallCollision(nextX, this.group.position.z, 0.55)) {
+                        this.group.position.x = nextX;
+                    } else {
+                        this.targetPos.copy(patrolNodes[Math.floor(Math.random() * patrolNodes.length)]);
+                    }
+                    if (!checkWallCollision(this.group.position.x, nextZ, 0.55)) {
+                        this.group.position.z = nextZ;
+                    }
+
+                    this.group.rotation.y = Math.atan2(this._tmpTarget.x, this._tmpTarget.z);
+                    this.walkCycle += dt * speed * 2.3;
+                    this.leftLeg.rotation.x = Math.sin(this.walkCycle) * 0.45;
+                    this.rightLeg.rotation.x = -Math.sin(this.walkCycle) * 0.45;
+                    this.leftArm.rotation.x = -Math.sin(this.walkCycle) * 0.35;
+                    this.rightArm.rotation.x = Math.sin(this.walkCycle) * 0.35;
+                    this.head.rotation.z = this.state === 'CHASE' ? Math.sin(this.walkCycle * 0.5) * 0.16 : 0;
+
+                    this.stepCooldown -= dt * speed;
+                    if (this.stepCooldown <= 0) {
+                        sound.playFootstep(true, distToPlayer);
+                        this.stepCooldown = 1.5;
+                    }
+                }
+
+                const terrorFactor = Math.max(0, Math.min(1, 1 - (distToPlayer - 2) / 24));
+                const vignette = document.getElementById('terror-vignette');
+                if (terrorFactor > 0.02) {
+                    vignette.style.opacity = terrorFactor.toFixed(2);
+                    vignette.style.background = 'radial-gradient(circle, transparent 35%, rgba(120, 0, 0, 0.72) 100%)';
+                } else {
+                    vignette.style.opacity = '0';
+                }
+
+                sound.heartbeatTimer -= dt * (1 + terrorFactor * 2);
+                if (sound.heartbeatTimer <= 0 && terrorFactor > 0.15) {
+                    sound.playHeartbeat(terrorFactor);
+                    sound.heartbeatTimer = 1.1;
+                }
+            }
+        }
+
+        const owen = new OwenSaunders(owenSpawnPos);
+
+        // --- WALL COLLISION ---
+        function checkWallCollision(x, z, radius) {
+            const cMin = Math.floor((x - radius) / CELL_SIZE);
+            const cMax = Math.ceil((x + radius) / CELL_SIZE);
+            const rMin = Math.floor((z - radius) / CELL_SIZE);
+            const rMax = Math.ceil((z + radius) / CELL_SIZE);
+
+            for (let r = rMin; r <= rMax; r++) {
+                for (let c = cMin; c <= cMax; c++) {
+                    if (MAP_GRID[r] && MAP_GRID[r][c] === 1) {
+                        const wx = c * CELL_SIZE;
+                        const wz = r * CELL_SIZE;
+                        const half = CELL_SIZE / 2;
+                        const closestX = Math.max(wx - half, Math.min(x, wx + half));
+                        const closestZ = Math.max(wz - half, Math.min(z, wz + half));
+                        const dx = x - closestX;
+                        const dz = z - closestZ;
+                        if ((dx * dx + dz * dz) < (radius * radius)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // --- INVENTORY, HOTBAR & TOUCH/MOUSE DRAG-AND-DROP SYSTEM ---
+        let selectedInvIndex = 0;
+        let dragSourceIndex = null;
+        let dragTouchId = null;
+        let isDragging = false;
+        const dragGhost = document.getElementById('drag-ghost');
+
+        function findCatalogItem(id) {
+            if (!id) return null;
+            return CATALOG.weapons.find(x => x.id === id) ||
+                   CATALOG.armor.find(x => x.id === id) ||
+                   CATALOG.consumables.find(x => x.id === id) || null;
+        }
+
+        function getItemType(id) {
+            if (!id) return null;
+            if (id.startsWith('w')) return 'weapon';
+            if (id.startsWith('a')) return 'armor';
+            if (id.startsWith('c')) return 'consumable';
+            return null;
+        }
+
+        function addItemToInventory(itemId) {
+            const emptyIdx = saveData.inventory.findIndex(slot => slot === null);
+            if (emptyIdx === -1) return false;
+            saveData.inventory[emptyIdx] = itemId;
+            persistSave();
+            renderHotbar();
+            return true;
+        }
+
+        function swapInventorySlots(fromIdx, toIdx) {
+            if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= 20 || toIdx >= 20) return;
+            const temp = saveData.inventory[fromIdx];
+            saveData.inventory[fromIdx] = saveData.inventory[toIdx];
+            saveData.inventory[toIdx] = temp;
+
+            // Keep hotbar links intuitive when moving items between inventory slots
+            for (let h = 0; h < 6; h++) {
+                if (saveData.hotbar[h] === fromIdx) saveData.hotbar[h] = toIdx;
+                else if (saveData.hotbar[h] === toIdx) saveData.hotbar[h] = fromIdx;
+            }
+            selectedInvIndex = toIdx;
+            persistSave();
+            renderHotbar();
+            renderInventoryModal();
+        }
+
+        function assignSlotToHotbar(invIdx, hotbarIdx) {
+            if (invIdx < 0 || invIdx >= 20 || hotbarIdx < 0 || hotbarIdx >= 6) return;
+            saveData.hotbar[hotbarIdx] = invIdx;
+            state.selectedHotbarSlot = hotbarIdx;
+            persistSave();
+            renderHotbar();
+            renderInventoryModal();
+        }
+
+        function renderHotbar() {
+            const slots = document.querySelectorAll('.hotbar-slot');
+            slots.forEach((el, hIdx) => {
+                const invIdx = saveData.hotbar[hIdx];
+                const itemId = saveData.inventory[invIdx];
+                const item = findCatalogItem(itemId);
+                const cd = itemId ? (state.weaponCooldowns[itemId] || 0) : 0;
+                const nameEl = el.querySelector('.slot-name');
+                const txt = (item && cd > 0) ? `${Math.ceil(cd)}s` : (item ? item.name.slice(0, 10) : 'EMPTY');
+                if (nameEl.textContent !== txt) nameEl.textContent = txt;
+                el.classList.toggle('selected', state.selectedHotbarSlot === hIdx);
+            });
+            updateUseButtonDisplay();
+        }
+
+        function updateUseButtonDisplay() {
+            const btnUse = document.getElementById('btn-use');
+            const invIdx = saveData.hotbar[state.selectedHotbarSlot];
+            const id = saveData.inventory[invIdx];
+            const cd = id ? (state.weaponCooldowns[id] || 0) : 0;
+            if (cd > 0) {
+                btnUse.classList.add('on-cooldown');
+                const label = `CD: ${Math.ceil(cd)}s`;
+                if (btnUse.textContent !== label) btnUse.textContent = label;
+            } else {
+                btnUse.classList.remove('on-cooldown');
+                if (btnUse.textContent !== 'USE / STUN') btnUse.textContent = 'USE / STUN';
+            }
+        }
+
+        document.querySelectorAll('.hotbar-slot').forEach((el, idx) => {
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); state.selectedHotbarSlot = idx; renderHotbar(); });
+            el.addEventListener('click', () => { state.selectedHotbarSlot = idx; renderHotbar(); });
+        });
+
+        function clearDragHighlights() {
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        }
+
+        function handleDragMove(clientX, clientY) {
+            if (!isDragging) return;
+            dragGhost.style.left = `${clientX}px`;
+            dragGhost.style.top = `${clientY}px`;
+            clearDragHighlights();
+            const target = document.elementFromPoint(clientX, clientY);
+            if (!target) return;
+            const invTarget = target.closest('.inv-slot');
+            const hbTarget = target.closest('.inv-hotbar-drop');
+            if (invTarget) invTarget.classList.add('drag-over');
+            if (hbTarget) hbTarget.classList.add('drag-over');
+        }
+
+        function handleDragEnd(clientX, clientY) {
+            if (!isDragging) return;
+            dragGhost.style.display = 'none';
+            clearDragHighlights();
+
+            const target = document.elementFromPoint(clientX, clientY);
+            if (target && dragSourceIndex !== null) {
+                const invTarget = target.closest('.inv-slot');
+                const hbTarget = target.closest('.inv-hotbar-drop');
+                if (invTarget && invTarget.dataset.invIdx !== undefined) {
+                    swapInventorySlots(dragSourceIndex, parseInt(invTarget.dataset.invIdx, 10));
+                } else if (hbTarget && hbTarget.dataset.hbIdx !== undefined) {
+                    assignSlotToHotbar(dragSourceIndex, parseInt(hbTarget.dataset.hbIdx, 10));
+                }
+            }
+            isDragging = false;
+            dragSourceIndex = null;
+            dragTouchId = null;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) handleDragMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', (e) => {
+            if (isDragging) handleDragEnd(e.clientX, e.clientY);
+        });
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            for (const t of e.changedTouches) {
+                if (t.identifier === dragTouchId) {
+                    e.preventDefault();
+                    handleDragMove(t.clientX, t.clientY);
+                }
+            }
+        }, { passive: false });
+        window.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            for (const t of e.changedTouches) {
+                if (t.identifier === dragTouchId) {
+                    handleDragEnd(t.clientX, t.clientY);
+                }
+            }
+        });
+
+        function renderInventoryModal() {
+            const grid = document.getElementById('inv-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const itemId = saveData.inventory[i];
+                const item = findCatalogItem(itemId);
+                const cell = document.createElement('div');
+                cell.className = 'inv-slot';
+                cell.dataset.invIdx = i;
+                if (saveData.hotbar.includes(i)) cell.classList.add('in-hotbar');
+                if (itemId && saveData.equippedArmorId === itemId) cell.classList.add('equipped-armor');
+                if (selectedInvIndex === i) cell.style.borderColor = '#fff';
+
+                const hbPos = saveData.hotbar.indexOf(i);
+                const badge = hbPos !== -1 ? `[H${hbPos + 1}] ` : '';
+                cell.innerHTML = `<span style="color:#777;font-size:8px;">${badge}#${i + 1}</span><span>${item ? item.name : 'EMPTY'}</span>`;
+
+                // Mouse Drag Start
+                cell.addEventListener('mousedown', (e) => {
+                    selectedInvIndex = i;
+                    renderInventoryModal();
+                    if (!item) return;
+                    isDragging = true;
+                    dragSourceIndex = i;
+                    dragGhost.textContent = item.name;
+                    dragGhost.style.left = `${e.clientX}px`;
+                    dragGhost.style.top = `${e.clientY}px`;
+                    dragGhost.style.display = 'block';
+                });
+
+                // Touch Drag Start
+                cell.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    selectedInvIndex = i;
+                    renderInventoryModal();
+                    if (!item) return;
+                    const t = e.changedTouches[0];
+                    isDragging = true;
+                    dragSourceIndex = i;
+                    dragTouchId = t.identifier;
+                    dragGhost.textContent = item.name;
+                    dragGhost.style.left = `${t.clientX}px`;
+                    dragGhost.style.top = `${t.clientY}px`;
+                    dragGhost.style.display = 'block';
+                }, { passive: false });
+
+                grid.appendChild(cell);
+            }
+
+            // Render 6 Hotbar Drop Targets inside Inventory Modal
+            const hbBar = document.getElementById('inv-hotbar-bar');
+            hbBar.innerHTML = '';
+            for (let h = 0; h < 6; h++) {
+                const mappedInvIdx = saveData.hotbar[h];
+                const mappedItem = findCatalogItem(saveData.inventory[mappedInvIdx]);
+                const hbCell = document.createElement('div');
+                hbCell.className = 'inv-hotbar-drop';
+                hbCell.dataset.hbIdx = h;
+                hbCell.innerHTML = `<span style="color:#888;font-size:8px;">HOTBAR ${h + 1}</span><span>${mappedItem ? mappedItem.name.slice(0, 10) : 'EMPTY'}</span>`;
+                hbCell.onclick = () => assignSlotToHotbar(selectedInvIndex, h);
+                hbBar.appendChild(hbCell);
+            }
+
+            const infoEl = document.getElementById('inv-item-info');
+            const btnsEl = document.getElementById('inv-action-btns');
+            btnsEl.innerHTML = '';
+
+            const curId = saveData.inventory[selectedInvIndex];
+            const curItem = findCatalogItem(curId);
+            if (!curItem) {
+                infoEl.textContent = `Slot #${selectedInvIndex + 1}: Empty. Drag any item here to relocate.`;
+                return;
+            }
+
+            const type = getItemType(curId);
+            infoEl.innerHTML = `<strong>${curItem.name}</strong><br><span style="color:#999;">${curItem.desc}</span>`;
+
+            if (type === 'armor') {
+                const eqBtn = document.createElement('button');
+                eqBtn.className = 'action-small-btn';
+                eqBtn.textContent = saveData.equippedArmorId === curId ? 'UNEQUIP' : 'EQUIP ARMOR';
+                eqBtn.onclick = () => {
+                    saveData.equippedArmorId = (saveData.equippedArmorId === curId) ? null : curId;
+                    persistSave();
+                    updateObjectiveUI();
+                    renderInventoryModal();
+                };
+                btnsEl.appendChild(eqBtn);
+            } else if (type === 'consumable') {
+                const useBtn = document.createElement('button');
+                useBtn.className = 'action-small-btn';
+                useBtn.textContent = 'USE NOW';
+                useBtn.onclick = () => {
+                    useConsumable(selectedInvIndex);
+                    renderInventoryModal();
+                };
+                btnsEl.appendChild(useBtn);
+            }
+
+            const hbBtn = document.createElement('button');
+            hbBtn.className = 'action-small-btn';
+            hbBtn.textContent = `SET HOTBAR #${state.selectedHotbarSlot + 1}`;
+            hbBtn.onclick = () => assignSlotToHotbar(selectedInvIndex, state.selectedHotbarSlot);
+            btnsEl.appendChild(hbBtn);
+        }
+
+        function useConsumable(invIdx) {
+            const id = saveData.inventory[invIdx];
+            const item = findCatalogItem(id);
+            if (!item || getItemType(id) !== 'consumable') return;
+
+            state.health = Math.min(state.maxHealth, state.health + item.heal);
+            state.stamina = Math.min(state.maxStamina, state.stamina + item.stam);
+            if (item.speedBoost > 0) state.speedBoostTimer = Math.max(state.speedBoostTimer, item.speedBoost);
+
+            saveData.inventory[invIdx] = null;
+            persistSave();
+            sound.playTone(440, 'sine', 0.2, 0.2);
+            updateStatusBars();
+            renderHotbar();
+        }
+
+        function useActiveHotbarItem() {
+            const invIdx = saveData.hotbar[state.selectedHotbarSlot];
+            const id = saveData.inventory[invIdx];
+            const item = findCatalogItem(id);
+            if (!item) return;
+
+            const type = getItemType(id);
+            if (type === 'consumable') {
+                useConsumable(invIdx);
+            } else if (type === 'weapon') {
+                if ((state.weaponCooldowns[id] || 0) > 0) return;
+
+                const dx = owen.group.position.x - state.playerPos.x;
+                const dz = owen.group.position.z - state.playerPos.z;
+                const dist = Math.hypot(dx, dz);
+                const invD = dist > 0.001 ? 1 / dist : 1;
+
+                const lookX = -Math.sin(state.playerYaw);
+                const lookZ = -Math.cos(state.playerYaw);
+                const dot = lookX * (dx * invD) + lookZ * (dz * invD);
+
+                const hit = (dist <= item.range && dot > 0.65 && owen.hasLineOfSight(state.playerPos));
+
+                if (hit) {
+                    const upg = getUpgradeTotals();
+                    const stunDur = item.stun * (1 + upg.stunMult);
+                    owen.applyStun(stunDur);
+                    state.weaponCooldowns[id] = item.cd;
+                } else {
+                    sound.playTone(180, 'sine', 0.08, 0.12);
+                    state.weaponCooldowns[id] = 1.0;
+                }
+                renderHotbar();
+            }
+        }
+
+        // --- SHOP / QUARTERMASTER MODAL ---
+        let activeShopTab = 'weapons';
+
+        function renderShopModal() {
+            document.getElementById('shop-coins').textContent = saveData.coins;
+            const listEl = document.getElementById('shop-list');
+            listEl.innerHTML = '';
+
+            const items = CATALOG[activeShopTab];
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'shop-item';
+
+                const isUpgrade = activeShopTab === 'upgrades';
+                const alreadyOwnedUpgrade = isUpgrade && saveData.ownedUpgrades.includes(item.id);
+                const invFull = !isUpgrade && !saveData.inventory.includes(null);
+
+                let btnLabel = `${item.cost} COINS`;
+                let disabled = saveData.coins < item.cost;
+
+                if (alreadyOwnedUpgrade) {
+                    btnLabel = 'OWNED';
+                    disabled = true;
+                } else if (invFull) {
+                    btnLabel = 'INV FULL';
+                    disabled = true;
+                }
+
+                row.innerHTML = `
+                    <div class="shop-item-info">
+                        <div class="shop-item-name">${item.name}</div>
+                        <div class="shop-item-desc">${item.desc}</div>
+                    </div>
+                    <button class="buy-btn" ${disabled ? 'disabled' : ''}>${btnLabel}</button>
+                `;
+
+                row.querySelector('.buy-btn').onclick = () => {
+                    if (saveData.coins < item.cost) return;
+                    if (isUpgrade) {
+                        if (saveData.ownedUpgrades.includes(item.id)) return;
+                        saveData.coins -= item.cost;
+                        saveData.ownedUpgrades.push(item.id);
+                        applyPlayerUpgrades();
+                    } else {
+                        if (!addItemToInventory(item.id)) return;
+                        saveData.coins -= item.cost;
+                    }
+                    persistSave();
+                    updateStartStats();
+                    updateObjectiveUI();
+                    renderShopModal();
+                };
+
+                listEl.appendChild(row);
+            });
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeShopTab = btn.dataset.tab;
+                renderShopModal();
+            };
+        });
+
+        // --- UI UPDATES (CACHED DOM UPDATES FOR ZERO FRAME DROPS) ---
+        let lastHpPct = -1;
+        let lastStamPct = -1;
+
+        function updateStartStats() {
+            const el = document.getElementById('start-stats');
+            if (el) el.textContent = `SAVED COINS: ${saveData.coins} | ESCAPES: ${saveData.escapes || 0}`;
+        }
+
+        function applyPlayerUpgrades() {
+            const upg = getUpgradeTotals();
+            state.maxHealth = 100 + upg.maxHp;
+            state.maxStamina = 100 + upg.maxStam;
+            flashlight.intensity = 2.5 * (1 + upg.light);
+            flashlight.distance = 34 * (1 + upg.light);
+        }
+
+        function updateStatusBars() {
+            const hpPct = Math.round((state.health / state.maxHealth) * 100);
+            const stamPct = Math.round((state.stamina / state.maxStamina) * 100);
+            if (hpPct !== lastHpPct) {
+                lastHpPct = hpPct;
+                document.getElementById('health-fill').style.width = `${Math.max(0, Math.min(100, hpPct))}%`;
+                document.getElementById('health-text').textContent = `HP: ${hpPct}%`;
+            }
+            if (stamPct !== lastStamPct) {
+                lastStamPct = stamPct;
+                document.getElementById('stamina-fill').style.width = `${Math.max(0, Math.min(100, stamPct))}%`;
+                document.getElementById('stamina-text').textContent = `STAM: ${stamPct}%`;
+            }
+        }
+
+        function updateObjectiveUI() {
+            const objText = document.getElementById('objective-text');
+            if (!state.hasKeycard) {
+                objText.textContent = "Locate the Executive Keycard in the Central Wing.";
+            } else if (state.breakersFixed < state.totalBreakers) {
+                objText.textContent = `Restore Auxiliary Breakers (${state.breakersFixed}/${state.totalBreakers}).`;
+            } else {
+                objText.textContent = "Power online. Override the South-East Blast Door.";
+            }
+            const armor = getEquippedArmor();
+            document.getElementById('coin-display').textContent = `COINS: ${saveData.coins} | ARMOR: ${armor ? armor.name : 'NONE'}`;
+        }
+
+        // --- PAUSE & REFRESH PERSISTENCE ---
+        function savePausedSession() {
+            saveData.pausedRun = {
+                hasKeycard: state.hasKeycard,
+                breakersFixed: state.breakersFixed,
+                health: state.health,
+                stamina: state.stamina,
+                weaponCooldowns: state.weaponCooldowns,
+                playerPos: { x: state.playerPos.x, y: state.playerPos.y, z: state.playerPos.z },
+                playerYaw: state.playerYaw,
+                playerPitch: state.playerPitch,
+                owenPos: { x: owen.group.position.x, z: owen.group.position.z },
+                completedIds: interactables.filter(i => i.completed).map(i => i.id)
+            };
+            persistSave();
+        }
+
+        function clearPausedSession() {
+            saveData.pausedRun = null;
+            persistSave();
+        }
+
+        function pauseGame() {
+            if (!state.running) return;
+            state.paused = true;
+            savePausedSession();
+            document.getElementById('pause-screen').style.display = 'flex';
+        }
+
+        function resumeGame() {
+            state.paused = false;
+            clearPausedSession();
+            document.getElementById('pause-screen').style.display = 'none';
+            lastTime = performance.now();
+        }
+
+        function restorePausedSession(data) {
+            applyPlayerUpgrades();
+            state.hasKeycard = data.hasKeycard;
+            state.breakersFixed = data.breakersFixed;
+            state.health = data.health;
+            state.stamina = data.stamina;
+            state.weaponCooldowns = data.weaponCooldowns || {};
+            state.playerPos.set(data.playerPos.x, data.playerPos.y, data.playerPos.z);
+            state.playerYaw = data.playerYaw;
+            state.playerPitch = data.playerPitch;
+            owen.group.position.set(data.owenPos.x, 0, data.owenPos.z);
+
+            interactables.forEach(item => {
+                if (data.completedIds.includes(item.id)) {
+                    item.completed = true;
+                    if (item.type === 'keycard') { scene.remove(item.mesh); scene.remove(item.light); }
+                    if (item.type === 'breaker') { item.indicator.material.color.setHex(0x22ff44); }
+                }
+            });
+
+            updateStatusBars();
+            updateObjectiveUI();
+            renderHotbar();
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('pause-screen').style.display = 'flex';
+
+            state.running = true;
+            state.paused = true;
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (state.paused && state.running) {
+                savePausedSession();
+            } else {
+                persistSave();
+            }
+        });
+
+        // --- MULTI-TOUCH CONTROLS ---
+        const input = { moveX: 0, moveY: 0, joyTouchId: null, lookTouchId: null, lastLookX: 0, lastLookY: 0, keys: {} };
+        const joyZone = document.getElementById('joystick-zone');
+        const joyKnob = document.getElementById('joystick-knob');
+        const lookZone = document.getElementById('look-zone');
+
+        joyZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (const t of e.changedTouches) {
+                if (input.joyTouchId === null) {
+                    input.joyTouchId = t.identifier;
+                    updateJoystick(t.clientX, t.clientY);
+                }
+            }
+        }, { passive: false });
+
+        joyZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for (const t of e.changedTouches) {
+                if (t.identifier === input.joyTouchId) updateJoystick(t.clientX, t.clientY);
+            }
+        }, { passive: false });
+
+        const resetJoy = (e) => {
+            for (const t of e.changedTouches) {
+                if (t.identifier === input.joyTouchId) {
+                    input.joyTouchId = null; input.moveX = 0; input.moveY = 0;
+                    joyKnob.style.transform = 'translate3d(0px, 0px, 0px)';
+                }
+            }
+        };
+        joyZone.addEventListener('touchend', resetJoy);
+        joyZone.addEventListener('touchcancel', resetJoy);
+
+        function updateJoystick(cx, cy) {
+            const rect = joyZone.getBoundingClientRect();
+            const maxR = rect.width / 2 - 18;
+            let dx = cx - (rect.left + rect.width / 2);
+            let dy = cy - (rect.top + rect.height / 2);
+            const dist = Math.hypot(dx, dy);
+            if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+            joyKnob.style.transform = `translate3d(${dx}px, ${dy}px, 0px)`;
+            input.moveX = dx / maxR;
+            input.moveY = dy / maxR;
+        }
+
+        lookZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (const t of e.changedTouches) {
+                if (input.lookTouchId === null) {
+                    input.lookTouchId = t.identifier;
+                    input.lastLookX = t.clientX;
+                    input.lastLookY = t.clientY;
+                }
+            }
+        }, { passive: false });
+
+        lookZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for (const t of e.changedTouches) {
+                if (t.identifier === input.lookTouchId) {
+                    const dx = t.clientX - input.lastLookX;
+                    const dy = t.clientY - input.lastLookY;
+                    input.lastLookX = t.clientX;
+                    input.lastLookY = t.clientY;
+                    state.playerYaw -= dx * 0.0045;
+                    state.playerPitch = Math.max(-1.2, Math.min(1.2, state.playerPitch - dy * 0.0045));
+                }
+            }
+        }, { passive: false });
+
+        const resetLook = (e) => {
+            for (const t of e.changedTouches) {
+                if (t.identifier === input.lookTouchId) input.lookTouchId = null;
+            }
+        };
+        lookZone.addEventListener('touchend', resetLook);
+        lookZone.addEventListener('touchcancel', resetLook);
+
+        const btnSprint = document.getElementById('btn-sprint');
+        function toggleSprint() {
+            state.sprintToggled = !state.sprintToggled;
+            btnSprint.classList.toggle('active', state.sprintToggled);
+            btnSprint.textContent = state.sprintToggled ? 'SPRINT: ON' : 'SPRINT: OFF';
+        }
+        btnSprint.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); toggleSprint(); });
+        btnSprint.addEventListener('click', toggleSprint);
+
+        const btnLight = document.getElementById('btn-light');
+        function toggleLight() {
+            state.flashlightOn = !state.flashlightOn;
+            flashlight.visible = state.flashlightOn;
+            btnLight.classList.toggle('active', state.flashlightOn);
+        }
+        btnLight.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); toggleLight(); });
+        btnLight.addEventListener('click', toggleLight);
+
+        const btnUse = document.getElementById('btn-use');
+        btnUse.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); useActiveHotbarItem(); });
+        btnUse.addEventListener('click', useActiveHotbarItem);
+
+        const interactPrompt = document.getElementById('interact-prompt');
+        interactPrompt.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); state.interacting = true; });
+        interactPrompt.addEventListener('touchend', (e) => { e.preventDefault(); state.interacting = false; state.interactProgress = 0; });
+        interactPrompt.addEventListener('mousedown', () => state.interacting = true);
+        interactPrompt.addEventListener('mouseup', () => { state.interacting = false; state.interactProgress = 0; });
+
+        // Modal & Button Listeners
+        document.getElementById('pause-btn').onclick = pauseGame;
+        document.getElementById('btn-resume').onclick = resumeGame;
+        document.getElementById('btn-restart-run').onclick = () => { clearPausedSession(); location.reload(); };
+        document.getElementById('btn-end-restart').onclick = () => { clearPausedSession(); location.reload(); };
+
+        document.getElementById('inv-open-btn').onclick = () => {
+            if (state.running && !state.paused) state.paused = true;
+            renderInventoryModal();
+            document.getElementById('inv-modal').style.display = 'flex';
+        };
+        document.getElementById('btn-close-inv').onclick = () => {
+            document.getElementById('inv-modal').style.display = 'none';
+            if (state.running && document.getElementById('pause-screen').style.display !== 'flex') {
+                state.paused = false;
+                lastTime = performance.now();
+            }
+        };
+
+        const openShop = () => { renderShopModal(); document.getElementById('shop-modal').style.display = 'flex'; };
+        document.getElementById('btn-open-shop-start').onclick = openShop;
+        document.getElementById('btn-open-shop-pause').onclick = openShop;
+        document.getElementById('btn-open-shop-end').onclick = openShop;
+        document.getElementById('btn-close-shop').onclick = () => {
+            document.getElementById('shop-modal').style.display = 'none';
+        };
+
+        // Desktop Keyboard Fallback
+        window.addEventListener('keydown', (e) => {
+            input.keys[e.code] = true;
+            if (e.code === 'KeyF') toggleLight();
+            if (e.code === 'ShiftLeft') toggleSprint();
+            if (e.code === 'KeyE') state.interacting = true;
+            if (e.code === 'Space') useActiveHotbarItem();
+            if (e.code >= 'Digit1' && e.code <= 'Digit6') {
+                state.selectedHotbarSlot = parseInt(e.code.replace('Digit', '')) - 1;
+                renderHotbar();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            input.keys[e.code] = false;
+            if (e.code === 'KeyE') { state.interacting = false; state.interactProgress = 0; }
+        });
+
+        // --- OBJECTIVES & INTERACTION ---
+        function handleInteractions(dt) {
+            let closest = null;
+            let minDist = 3.0;
+            for (const item of interactables) {
+                if (item.completed) continue;
+                const d = state.playerPos.distanceTo(item.pos);
+                if (d < minDist) { minDist = d; closest = item; }
+            }
+
+            const progContainer = document.getElementById('progress-container');
+            const progFill = document.getElementById('progress-fill');
+            const upg = getUpgradeTotals();
+            const speedMult = 1 + upg.interact;
+
+            if (closest) {
+                if (closest.type === 'exit' && (!state.hasKeycard || state.breakersFixed < state.totalBreakers)) {
+                    interactPrompt.style.display = 'block';
+                    interactPrompt.textContent = '[LOCKED: KEYCARD & 3 BREAKERS REQUIRED]';
+                    progContainer.style.display = 'none';
+                    return;
+                }
+
+                interactPrompt.style.display = 'block';
+                interactPrompt.textContent = `[HOLD: ${closest.label}]`;
+
+                if (state.interacting) {
+                    progContainer.style.display = 'block';
+                    state.interactProgress += dt * speedMult;
+                    const pct = Math.min(100, (state.interactProgress / closest.duration) * 100);
+                    progFill.style.width = `${pct}%`;
+
+                    if (closest.type !== 'keycard') {
+                        owen.targetPos.set(state.playerPos.x, 0, state.playerPos.z);
+                        if (owen.state !== 'CHASE') owen.state = 'INVESTIGATE';
+                    }
+
+                    if (state.interactProgress >= closest.duration) {
+                        closest.completed = true;
+                        sound.playTone(300, 'square', 0.2, 0.2);
+                        if (closest.type === 'keycard') {
+                            state.hasKeycard = true;
+                            scene.remove(closest.mesh);
+                            scene.remove(closest.light);
+                        } else if (closest.type === 'breaker') {
+                            state.breakersFixed++;
+                            closest.indicator.material.color.setHex(0x22ff44);
+                        } else if (closest.type === 'exit') {
+                            endGame(true);
+                        }
+                        updateObjectiveUI();
+                        state.interacting = false;
+                        state.interactProgress = 0;
+                        progContainer.style.display = 'none';
+                    }
+                } else {
+                    progContainer.style.display = 'none';
+                    state.interactProgress = 0;
+                }
+            } else {
+                interactPrompt.style.display = 'none';
+                progContainer.style.display = 'none';
+                state.interactProgress = 0;
+            }
+        }
+
+        // --- MAIN LOOP (PRE-ALLOCATED VECTORS FOR ZERO GC LAG) ---
+        let lastTime = performance.now();
+        let cdUiTimer = 0;
+        const _forwardVec = new THREE.Vector3();
+        const _rightVec = new THREE.Vector3();
+        const _velocity = new THREE.Vector3();
+        const _camEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            if (!state.running || state.paused) return;
+
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+
+            // Tick down per-weapon cooldowns
+            let anyCdActive = false;
+            for (const wid in state.weaponCooldowns) {
+                if (state.weaponCooldowns[wid] > 0) {
+                    state.weaponCooldowns[wid] = Math.max(0, state.weaponCooldowns[wid] - dt);
+                    anyCdActive = true;
+                }
+            }
+            cdUiTimer += dt;
+            if (anyCdActive && cdUiTimer >= 0.2) {
+                cdUiTimer = 0;
+                renderHotbar();
+            }
+
+            if (state.hitCooldown > 0) state.hitCooldown -= dt;
+            if (state.speedBoostTimer > 0) state.speedBoostTimer -= dt;
+
+            let moveForward = -input.moveY;
+            let moveRight = input.moveX;
+            if (input.keys['KeyW']) moveForward = 1;
+            if (input.keys['KeyS']) moveForward = -1;
+            if (input.keys['KeyA']) moveRight = -1;
+            if (input.keys['KeyD']) moveRight = 1;
+            if (input.keys['ArrowLeft']) state.playerYaw += 2.2 * dt;
+            if (input.keys['ArrowRight']) state.playerYaw -= 2.2 * dt;
+
+            const isMoving = Math.hypot(moveForward, moveRight) > 0.1;
+            const upg = getUpgradeTotals();
+            const armor = getEquippedArmor();
+
+            const canSprint = state.sprintToggled && isMoving && state.stamina > 0;
+            if (canSprint) {
+                state.stamina = Math.max(0, state.stamina - 10 * dt);
+                if (state.stamina === 0) toggleSprint();
+            } else {
+                const regenRate = 20 + upg.stamRegen;
+                state.stamina = Math.min(state.maxStamina, state.stamina + regenRate * dt);
+            }
+            updateStatusBars();
+
+            const armorSpd = armor ? armor.spd : 0;
+            const boostMult = state.speedBoostTimer > 0 ? 1.3 : 1.0;
+            const totalMult = Math.max(0.5, (1 + upg.speed + armorSpd) * boostMult);
+            const baseSpeed = canSprint ? 6.4 : 4.0;
+            const speed = baseSpeed * totalMult;
+
+            const sinY = Math.sin(state.playerYaw);
+            const cosY = Math.cos(state.playerYaw);
+            _forwardVec.set(-sinY, 0, -cosY);
+            _rightVec.set(cosY, 0, -sinY);
+            _velocity.set(0, 0, 0).addScaledVector(_forwardVec, moveForward).addScaledVector(_rightVec, moveRight);
+            if (_velocity.lengthSq() > 1) _velocity.normalize();
+            _velocity.multiplyScalar(speed * dt);
+
+            const nextX = state.playerPos.x + _velocity.x;
+            const nextZ = state.playerPos.z + _velocity.z;
+            if (!checkWallCollision(nextX, state.playerPos.z, 0.45)) state.playerPos.x = nextX;
+            if (!checkWallCollision(state.playerPos.x, nextZ, 0.45)) state.playerPos.z = nextZ;
+
+            if (isMoving) {
+                state.walkBobTimer += dt * speed * 2.8;
+                camera.position.y = state.playerHeight + Math.sin(state.walkBobTimer) * 0.045;
+                if (now - state.lastStepTime > (canSprint ? 300 : 480)) {
+                    sound.playFootstep(false, 0);
+                    state.lastStepTime = now;
+                }
+            } else {
+                camera.position.y += (state.playerHeight - camera.position.y) * 0.1;
+            }
+
+            camera.position.x = state.playerPos.x;
+            camera.position.z = state.playerPos.z;
+            _camEuler.set(state.playerPitch, state.playerYaw, 0);
+            camera.quaternion.setFromEuler(_camEuler);
+
+            handleInteractions(dt);
+            owen.update(dt, state.playerPos, canSprint);
+
+            renderer.render(scene, camera);
+        }
+
+        // --- START & END ---
+        function startFreshGame() {
+            sound.init();
+            clearPausedSession();
+            applyPlayerUpgrades();
+            state.health = state.maxHealth;
+            state.stamina = state.maxStamina;
+            state.hasKeycard = false;
+            state.breakersFixed = 0;
+            state.weaponCooldowns = {};
+            state.playerPos.copy(playerDefaultSpawn);
+            owen.group.position.copy(owenSpawnPos);
+
+            updateStatusBars();
+            updateObjectiveUI();
+            renderHotbar();
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            state.running = true;
+            state.paused = false;
+            lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }
+
+        document.getElementById('btn-start').onclick = startFreshGame;
+
+        function endGame(escaped) {
+            state.running = false;
+            clearPausedSession();
+            document.getElementById('hud').style.display = 'none';
+            const endScreen = document.getElementById('end-screen');
+            const endTitle = document.getElementById('end-title');
+            const endDesc = document.getElementById('end-desc');
+
+            endScreen.style.display = 'flex';
+            if (escaped) {
+                const upg = getUpgradeTotals();
+                const reward = 25 + upg.coinBonus;
+                saveData.coins += reward;
+                saveData.escapes = (saveData.escapes || 0) + 1;
+                persistSave();
+                updateStartStats();
+                endTitle.textContent = 'ESCAPED OWEN SAUNDERS';
+                endTitle.style.color = '#2e8b57';
+                endDesc.textContent = `Extraction successful. You earned +${reward} Coins (Total: ${saveData.coins}). Progress saved.`;
+            } else {
+                persistSave();
+                endTitle.textContent = 'TERMINATED';
+                endTitle.style.color = '#b82525';
+                endDesc.textContent = 'Owen Saunders eliminated you. Your saved coins, upgrades, and inventory remain intact.';
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        updateStartStats();
+        if (saveData.pausedRun) {
+            restorePausedSession(saveData.pausedRun);
+        }
+    </script>
+</body>
+</html>
